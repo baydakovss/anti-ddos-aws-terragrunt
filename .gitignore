@@ -1,0 +1,7 @@
+.terraform
+.terraform.lock.hcl
+.terragrunt-cache
+assets
+terraform.tfstate
+config.env
+infrastructure/liv
