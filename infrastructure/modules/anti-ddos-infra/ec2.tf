@@ -9,7 +9,10 @@ resource "aws_instance" "proxy" {
 
   lifecycle {
     ignore_changes = [ami]
+    create_before_destroy = true
   }
+
+  user_data_replace_on_change = true
 
   tags = {
     terraform = "true"
@@ -24,6 +27,11 @@ resource "aws_instance" "proxy" {
   provisioner "local-exec" {
     command = "sleep 40" # wait for instance profile to appear due to https://github.com/terraform-providers/terraform-provider-aws/issues/838
   }
+
 }
 
+resource "aws_eip_association" "this" {
+  instance_id   = aws_instance.proxy.id
+  allocation_id = aws_eip.my_eip.id
+}
 

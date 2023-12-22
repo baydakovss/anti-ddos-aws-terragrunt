@@ -4,4 +4,4 @@
 assets
 terraform.tfstate
 config.env
-infrastructure/liv
+infrastructure/live

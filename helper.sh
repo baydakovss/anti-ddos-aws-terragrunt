@@ -36,7 +36,8 @@ make_skeleton () {
   mkdir -p infrastructure/live/global/profiles/${profile}
   cp _template/global.hcl infrastructure/live/global/profiles/${profile}/terragrunt.hcl
 
-  cp -ra assets/_template assets/${domain}
+  mkdir assets/${domain}
+  cp -ra _template/assets/* assets/${domain}
 }
 
 fetch_certs () {

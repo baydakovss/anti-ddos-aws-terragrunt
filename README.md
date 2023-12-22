@@ -32,8 +32,10 @@ The protection is implemented using the following scheme:
 Under the hood, there is automation using Terraform/Terragrunt and custom bash scripts
 
 What do we do when an attack occurs, using the example of the website example.com:
-1. Clone the repository
-```git clone https://github.com/baydakovss/anti-ddos-terragrunt-aws```
+### Clone the repository
+```
+git clone https://github.com/baydakovss/anti-ddos-terragrunt-aws
+```
 
 I decided to simplify the deployment process by using a Makefile as a task runner. I've created a Makefile with prompts to assist in the setup
 
@@ -118,10 +120,10 @@ tree -L 3 infrastructure/live/example.com/
 infrastructure/live/example.com/
 ├── common.hcl
 └── profiles
-    └── sv
+    └── account01
         └── eu-central-1
 ```
-Actually, you can copy _template folder to achieve the same result.
+Actually, you can copy `_template` folder to achieve the same result.
 
 Terraform itself will determine, based on folder names, which AWS account to deploy to and in which region. 
 Perhaps it's not the most elegant solution from an IaC perspective, but it's a deliberate choice made for the sake of simplicity for unexperienced with AWS sysadmin's/IT managers...
@@ -173,7 +175,8 @@ Alternatively, you can manually place files with names TEMPLATE.{cert,chain,full
 ### Generate user-data script INSTALL.sh using due first start EC2 instance (nginx).
 `$ make make-userdata`
 As a result, script INSTALL.sh will be created with all necessary artifacts inside for all projects: certs, nginx confs
-```ls -1 assets/example.com/user-data/
+```
+ls -1 assets/example.com/user-data/
 INSTALL.sh
 ```
 ## Repeat the necessary number of times for different websites/accounts/AWS regions.
@@ -224,8 +227,19 @@ whitelist = tolist([
 
 Since the reverse proxy connects to the upstream/backnend with the EC2's IP address, if you need to see the real client IPs, you should ask the sysadmins to add the EC2's IP to the trusted list like this
 ```
-set_real_ip_from  3.77.247.101;
+set_real_ip_from  ec2_ip_address;
 real_ip_header    X-Forwarded-For;
 real_ip_recursive on;
 ```
 If configured correctly, the site logs will display different IPs from external users; if configured incorrectly, the logs will show the same IP as the upstream proxy
+
+### Check it is working
+```
+curl -I --connect-to ::global_accelerator_ip https://www.example.comHTTP/2 200
+server: nginx/1.23.1
+date: Wed, 20 Dec 2023 06:31:07 GMT
+content-type: text/html; charset=UTF-8
+```
+
+### Change DNS
+Change [www.]example.com to be pointed to one of global accelerators IPs

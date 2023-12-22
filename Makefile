@@ -1,6 +1,6 @@
 # Import main config
 cnf ?= config.env
-include $(cnf)
+-include $(cnf)
 export $(shell sed 's/=.*//' $(cnf))
 export PATH := ~/.local/bin:$(PATH)
 export PROJECT_FOLDER = $(shell pwd)

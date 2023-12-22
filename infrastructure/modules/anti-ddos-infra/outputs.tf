@@ -7,7 +7,8 @@ output "_region" {
 }
 
 output "ec2_public_ips" {
-  value = aws_instance.proxy.*.public_ip
+  #value = aws_instance.proxy.*.public_ip
+  value = aws_eip_association.this.public_ip
 }
 
 output "ga_ips" {
