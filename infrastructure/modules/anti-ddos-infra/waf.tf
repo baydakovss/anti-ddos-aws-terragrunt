@@ -2,7 +2,7 @@ resource "aws_wafv2_ip_set" "whitelist" {
 
   lifecycle {
     ignore_changes = [
-      addresses
+      # addresses
     ]
   }
 

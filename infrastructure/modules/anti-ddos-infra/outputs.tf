@@ -16,7 +16,7 @@ output "ga_ips" {
 }
 
 output "whitelist" {
-  value = aws_globalaccelerator_accelerator.this.ip_sets
+  value = aws_wafv2_ip_set.whitelist.addresses
 }
 
 
