@@ -1,7 +1,15 @@
 # Import main config
 cnf ?= config.env
--include $(cnf)
+
+ifneq ("$(wildcard ./$(cnf))","")
+#-include $(cnf)
+include $(cnf)
 export $(shell sed 's/=.*//' $(cnf))
+else
+$(info ***** If you need external variables inside helper functions, you can copy ./config.env-orig to config.env and make changes ****)
+endif
+
+
 export PATH := ~/.local/bin:$(PATH)
 export PROJECT_FOLDER = $(shell pwd)
 

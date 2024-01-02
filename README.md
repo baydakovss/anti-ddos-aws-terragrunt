@@ -19,19 +19,35 @@ That project documents my efforts on implementing AntiDDOS using AWS for colleag
    - And we can use several  "sleeping" AWS accounts credited 300$ USD by AWS to avoid paying on our own. Usually, such offer come to new accounts - all you need to do is fill out the form 
 
 ## Prerequisites
-AWS CLI with configured profiles on each account through `aws configure`
-- Terraform https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
-- Terragrunt https://terragrunt.gruntwork.io/docs/getting-started/install/
+AWS CLI with configured profiles on each account through 
+- `aws configure`
+- [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
+- [Terragrunt](https://terragrunt.gruntwork.io/docs/getting-started/install/)
 - Access to SSL certificates
 
 ## Implementation:
 The protection is implemented using the following scheme:
 > [!NOTE]
-> Global Accelerator → Application Load Balancer with AWS WAF → EC2 instance with Nginx reverse proxy, one set for each site
+> [Global Accelerator](https://aws.amazon.com/global-accelerator/) → Application Load Balancer with AWS WAF/Shield → EC2 instance with Nginx reverse proxy, one set for each site
 
+Protection against DDoS in AWS is managed by two services:
+- Attacks at Layer 3 and 4 - AWS Shield
+- Attacks at Layer 6 and 7 - AWS WAF (Web Application Firewall)
+ 
+Every Elastic Load Balancer (ELB) is automatically protected by AWS Shield Standard, but ELB provides a DNS name, not an IP address. Since our DNS records are primarily not in Route 53, we won't be able to add the ELB name to the DNS for the root/apex domain (example.com)
+- example.com :thumbsdown:
+- www.example.com :thumbsup:
+
+It is not what we are looking for
+
+To solve this problem, we will use the AWS Global Accelerator service, which is also integrated with AWS Shield and provides two unicast IP addresses. This will allow us to shift the entry point to the IP addresses instead of the ELB names, and we can switch through our DNS records.
+
+- example.com :thumbsup:
+- www.example.com :thumbsup:
+
+## Steps:
 Under the hood, there is automation using Terraform/Terragrunt and custom bash scripts
 
-What do we do when an attack occurs, using the example of the website example.com:
 ### Clone the repository
 ```
 git clone https://github.com/baydakovss/anti-ddos-terragrunt-aws
@@ -71,6 +87,7 @@ example.com
 ```
 
 After executing the command, subfolders with artifacts and a folder with code for deploying infrastructure will be created.
+
 Artifacts:
 
 <details>
@@ -120,13 +137,19 @@ tree -L 3 infrastructure/live/example.com/
 infrastructure/live/example.com/
 ├── common.hcl
 └── profiles
-    └── account01
-        └── eu-central-1
+    └── **account01**
+        └── **eu-central-1**
 ```
 Actually, you can copy `_template` folder to achieve the same result.
 
-Terraform itself will determine, based on folder names, which AWS account to deploy to and in which region. 
-Perhaps it's not the most elegant solution from an IaC perspective, but it's a deliberate choice made for the sake of simplicity for unexperienced with AWS sysadmin's/IT managers...
+> [!NOTE]
+> Terraform itself will determine, based on folder names, which AWS account to deploy to and in which region. 
+> Perhaps it's not the most elegant solution from an IaC perspective, but it's a deliberate choice made for the sake of simplicity for unexperienced with AWS sysadmin's/IT managers...
+
+> [!NOTE]
+> For those who wonder why we don't create S3 bucket for remote state, explain that remote state and locking resources are created [automatically](https://terragrunt.gruntwork.io/docs/features/keep-your-remote-state-configuration-dry/#create-remote-state-and-locking-resources-automatically) by Terragrant
+> 
+> The names of S3 buckets include aws_account id to not overlap, like antiddos-${local.aws_account}-terraform-state
 
 
 ### For the site you can specify settings.
@@ -168,11 +191,14 @@ Alternatively, you can manually place files with names TEMPLATE.{cert,chain,full
 > [!NOTE]
 > If there is no separate chain.pem, you can use fullchain.pem instead.
 
-### Create global resources for all profiles in folder's hierarchy (IAM role, Instance Profile) - once for added websites and associated AWS accounts
+### Create global resources
+Create global resources for all profiles in folder's hierarchy (IAM role, Instance Profile) - once for added websites and associated AWS accounts
+
 `$ make make-global`
 
 
-### Generate user-data script INSTALL.sh using due first start EC2 instance (nginx).
+### Generate user-data script 
+Generate user-data script INSTALL.sh using due first start EC2 instance (nginx).
 `$ make generate-userdata`
 As a result, script INSTALL.sh will be created with all necessary artifacts inside for all projects: certs, nginx confs
 ```
@@ -243,3 +269,57 @@ content-type: text/html; charset=UTF-8
 
 ### Change DNS
 Change [www.]example.com to be pointed to one of global accelerators IPs
+
+### Advantages antiddos with AWS WAF
+- Does not require DNS-delegation
+- We can switch to AWS WAF and expose our SSL to third-party (AWS) only temporarily when we under attack and then switch over back
+- Provides free protection against L3/4 level attacks.
+- - This is because our Global Accelerator listeners are not TCP/UDP but HTTP/S (L7).
+- Offers customization, including the use of third-party web firewalls that specialize in this.
+- Successfully handled the DDoS higher than 40.000 requests per second)
+
+### Costs
+#### Infrastructure cost for 1 month for one project via infracost
+<details>
+   
+<summary>Click me</summary>
+
+```console
+infracost breakdown --path .
+Project: baydakovss/anti-ddos-aws-terragrunt/infrastructure/live/example.com/profiles/account1/us-east-1
+Module path: profiles/sv/us-east-1
+
+ Name                                                      Monthly Qty  Unit                  Monthly Cost
+
+ aws_globalaccelerator_accelerator.this
+ └─ Fixed fee                                                      730  hours                       $18.25
+
+ aws_instance.proxy
+ ├─ Instance usage (Linux/UNIX, on-demand, t3.micro)               730  hours                        $7.59
+ └─ root_block_device
+    └─ Storage (general purpose SSD, gp2)                            8  GB                           $0.80
+
+ aws_lb.public
+ ├─ Application load balancer                                      730  hours                       $16.43
+ └─ Load balancer capacity units                      Monthly cost depends on usage: $5.84 per LCU
+
+ aws_wafv2_web_acl.this
+ ├─ Web ACL usage                                                    1  months                       $5.00
+ ├─ Rules                                                            3  rules                        $3.00
+ └─ Requests                                          Monthly cost depends on usage: $0.60 per 1M requests
+
+ OVERALL TOTAL                                                                                      $51.07
+```
+
+</details>
+
+#### Cost for requests
+```$0.60 per million requests processed```
+
+This is an actual example of the cost for the defense of one of our projects from October 30th to October 31st
+
+```console
+AWS WAF EUC1-RequestV2-Tier1
+$0.60 per million requests processed 191,026,951 Request	USD 114.62
+```
+

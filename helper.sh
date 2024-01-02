@@ -43,6 +43,8 @@ make_skeleton () {
 }
 
 fetch_certs () {
+    echo "****  Please consider modifying the process of obtaining certificates  ****"
+    echo "****  Feel free to put {cert,privkey,chain,fullhcain}.pem on your own with names {TEMPLATE.cert,TEMPLATE.privkey,TEMPLATE.chain,TEMPLATE.fullhcain}.pem  for each domain in 'assets/DOMAIN/certs' folder ****"
     echo "Fetch certs"
     pushd $(pwd) > /dev/null
     cd ./assets
@@ -62,14 +64,28 @@ fetch_certs () {
 }
 
 generate_userdata () {
+    pushd $(pwd) > /dev/null
+
     for i in $(find ./assets -mindepth $depth_folder -maxdepth $depth_folder -type d -name scripts | grep -v "_"); do
-      echo "Generate userdata for $VIRTUALHOST"
-      CURD=`pwd`
+      VIRTUALHOST=$(basename "$(dirname $i)")
+      PROJECT_FOLDER=$(dirname $i)
+      echo "Generate userdata for $VIRTUALHOST..."
+
+      if [ -z "$(ls -A $PROJECT_FOLDER/certs)" ]; then
+        echo "****  Folder $PROJECT_FOLDER/certs is empty. Please copy certificates into with names {TEMPLATE.cert,TEMPLATE.privkey,TEMPLATE.chain,TEMPLATE.fullhcain}.pem. Skiped for now  ****"
+        exit 1
+      fi
+
+      if ! test -f ../config.env; then
+        echo "****  Please copy file $(dirname $i)/config.env-orig to $(dirname $i)/config.env and change upstreams. Skiped for now  ****"
+        exit 1
+      fi
+
       cd $i
       ./make-script.sh
-      cd $CURD
     done
 
+    popd >/dev/null
     return $?
 }
 
