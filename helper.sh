@@ -1,6 +1,8 @@
 #!/bin/bash
 
-source ./config.env
+if test -f ./config.env; then
+  source ./config.env
+fi
 
 param_action=""
 depth_folder=2
@@ -36,23 +38,25 @@ make_skeleton () {
   mkdir -p infrastructure/live/global/profiles/${profile}
   cp _template/global.hcl infrastructure/live/global/profiles/${profile}/terragrunt.hcl
 
-  mkdir assets/${domain}
+  mkdir -p assets/${domain}/{certs,user-data}
   cp -ra _template/assets/* assets/${domain}
 }
 
 fetch_certs () {
-    pushd $(pwd)
+    echo "Fetch certs"
+    pushd $(pwd) > /dev/null
     cd ./assets
-    for i in $(find . -mindepth $depth_folder -maxdepth $depth_folder -type d -name certs | grep -v "_"); do
+    for i in $(find . -mindepth $depth_folder -maxdepth $depth_folder -type d -name certs ); do
+
       VIRTUALHOST=$(basename "$(dirname $i)")
       echo "Fetch certificates for $VIRTUALHOST:"
 
-      scp -P 34107 $user@$host:/opt/ssl/letsencrypt/$VIRTUALHOST/cert.pem $i/TEMPLATE.cert.pem
-      scp -P 34107 $user@$host:/opt/ssl/letsencrypt/$VIRTUALHOST/privkey.pem $i/TEMPLATE.privkey.pem
-      scp -P 34107 $user@$host:/opt/ssl/letsencrypt/$VIRTUALHOST/chain.pem $i/TEMPLATE.chain.pem
-      scp -P 34107 $user@$host:/opt/ssl/letsencrypt/$VIRTUALHOST/fullchain.pem $i/TEMPLATE.fullchain.pem
+        scp -P 34107 $user@$host:/opt/ssl/letsencrypt/$VIRTUALHOST/cert.pem $i/TEMPLATE.cert.pem
+        scp -P 34107 $user@$host:/opt/ssl/letsencrypt/$VIRTUALHOST/privkey.pem $i/TEMPLATE.privkey.pem
+        scp -P 34107 $user@$host:/opt/ssl/letsencrypt/$VIRTUALHOST/chain.pem $i/TEMPLATE.chain.pem
+        scp -P 34107 $user@$host:/opt/ssl/letsencrypt/$VIRTUALHOST/fullchain.pem $i/TEMPLATE.fullchain.pem
     done
-    popd
+    popd >/dev/null
 
     return $?
 }

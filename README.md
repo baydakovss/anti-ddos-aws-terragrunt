@@ -173,7 +173,7 @@ Alternatively, you can manually place files with names TEMPLATE.{cert,chain,full
 
 
 ### Generate user-data script INSTALL.sh using due first start EC2 instance (nginx).
-`$ make make-userdata`
+`$ make generate-userdata`
 As a result, script INSTALL.sh will be created with all necessary artifacts inside for all projects: certs, nginx confs
 ```
 ls -1 assets/example.com/user-data/
