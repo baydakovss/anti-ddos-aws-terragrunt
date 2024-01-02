@@ -76,7 +76,7 @@ generate_userdata () {
         exit 1
       fi
 
-      if ! test -f ../config.env; then
+      if ! test -f $PROJECT_FOLDER/config.env; then
         echo "****  Please copy file $(dirname $i)/config.env-orig to $(dirname $i)/config.env and change upstreams. Skiped for now  ****"
         exit 1
       fi
