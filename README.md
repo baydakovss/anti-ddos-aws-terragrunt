@@ -4,8 +4,14 @@ Automated Anti-DDoS Protection for websites / workloads on with the help of AWS
 ## Description:
 During the last years company faced many DDoS attacks on websites and other web resources.
 Traditionally, to mitigate I have been using
-- SYN floods and UDP reflection attacks (L3, L4) - iproute2/blackhole, iptables/connlimit
-- HTTP floods (L7) - limit_req, limit_conn, blacklist, geo/map for  on reverse proxies nginx 
+- SYN floods and UDP reflection attacks (L3, L4)
+  - iproute2/blackhole, iptables/drop/connlimit
+- HTTP floods (L7)
+  - limit_req, limit_conn, blacklist, geo/map for  on reverse proxies nginx
+  - Additional techniques I used on L7:
+     - Responding with HTTP/200 OK to non-standard user-agents and collected IP addresses of botnet.
+      - Returning 401/Unauthorized in case of password brute-force attempts.
+        - In both cases, attackers continued to expend resources, unaware that they were not achieving their goal and not devising new strategies.
 
 However, these approaches are not been efficient against recent large-scale attacks involving thousands of diverse IPs globally and request rates exceeding 40,000 requests per second (HTTP Flood).
 While relying on CloudFlare for protection is quite good (but not a silver bullet), enterprise constraints often prevent such a solution, due to CloudFlare requiring delegating domain to them. 
