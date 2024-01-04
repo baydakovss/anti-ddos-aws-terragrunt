@@ -65,12 +65,14 @@ fetch_certs () {
 
 generate_userdata () {
     pushd $(pwd) > /dev/null
+    cd ./assets
 
-    for i in $(find ./assets -mindepth $depth_folder -maxdepth $depth_folder -type d -name scripts | grep -v "_"); do
+    for i in $(find . -mindepth $depth_folder -maxdepth $depth_folder -type d -name scripts | grep -v "_"); do
       VIRTUALHOST=$(basename "$(dirname $i)")
       PROJECT_FOLDER=$(dirname $i)
       echo "Generate userdata for $VIRTUALHOST..."
 
+      ls -A $PROJECT_FOLDER/certs
       if [ -z "$(ls -A $PROJECT_FOLDER/certs)" ]; then
         echo "****  Folder $PROJECT_FOLDER/certs is empty. Please copy certificates into with names {TEMPLATE.cert,TEMPLATE.privkey,TEMPLATE.chain,TEMPLATE.fullhcain}.pem. Skiped for now  ****"
         exit 1
@@ -82,7 +84,9 @@ generate_userdata () {
       fi
 
       cd $i
+      # Script should be invoked from atrifacts folders
       ./make-script.sh
+      cd -
     done
 
     popd >/dev/null
