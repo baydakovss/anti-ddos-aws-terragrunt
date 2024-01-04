@@ -211,11 +211,9 @@ As a result, script INSTALL.sh will be created with all necessary artifacts insi
 ls -1 assets/example.com/user-data/
 INSTALL.sh
 ```
-## Repeat the necessary number of times for different websites/accounts/AWS regions.
-
 ### Launch the deployment.
-$ make terraforming
-The deployment process takes about 20 minutes, mainly due to the long initialization of AWS Global Accelerators.
+$ make terragrunting
+The deployment process will start for all workloads at once and takes about 20 minutes, mainly due to the long initialization of AWS Global Accelerators.
 
 ### Obtain the IP addresses from AWS Global Accelerator
 <details>
